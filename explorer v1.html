@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miraubolant 3D Explorer</title>
+    <style>
+        /* Variables globales avec thème unifié */
+        :root {
+            --color-bg: #e6e0d4;
+            --color-primary: #847d71;
+            --color-secondary: #b5ad9f;
+            --color-dark: #4a453e;
+            --color-accent: #4a90e2;
+            --color-white: #ffffff;
+            --color-danger: #ff5f57;
+            --color-success: #28c840;
+            --color-warning: #febc2e;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --header-height: 40px;
+            --toolbar-height: 50px;
+            --sidebar-width: 220px;
+            --grid-size: 100px;
+            --animation-speed: 0.15s;
+        }
+
+        /* Mode sombre */
+        body.dark-mode {
+            --color-bg: #2c2c2c;
+            --color-primary: #3c3c3c;
+            --color-secondary: #4c4c4c;
+            --color-dark: #1c1c1c;
+            --color-white: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+            --shadow-light: rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: var(--color-bg);
+            min-height: 100vh;
+            display: flex;
+            padding: 20px;
+            overflow: hidden;
+            transition: background-color var(--animation-speed);
+        }
+
+        .window {
+            background: var(--color-bg);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1400px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            transition: background-color var(--animation-speed),
+                      box-shadow var(--animation-speed);
+        }
+
+        /* En-tête et contrôles */
+        .window-header {
+            background: var(--color-dark);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            height: var(--header-height);
+            transition: background-color var(--animation-speed);
+        }
+
+        .window-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-title {
+            color: var(--color-white);
+            margin-left: 20px;
+            font-size: 14px;
+            flex-grow: 1;
+        }
+
+        .control-button {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            transition: opacity var(--animation-speed);
+        }
+
+        .control-button:hover {
+            opacity: 0.8;
+        }
+
+        .control-close { background: var(--color-danger); }
+        .control-minimize { background: var(--color-warning); }
+        .control-maximize { background: var(--color-success); }
+
+        /* Barre d'outils améliorée */
+        .toolbar {
+            background: var(--color-primary);
+            padding: 10px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            height: var(--toolbar-height);
+            border-bottom: 1px solid var(--color-dark);
+            transition: background-color var(--animation-speed);
+        }
+
+        .toolbar-button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: var(--color-secondary);
+            color: var(--color-dark);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+            transition: all var(--animation-speed);
+            position: relative;
+            box-shadow: 0 2px 4px var(--shadow-light);
+        }
+
+        .toolbar-button:hover {
+            transform: translateY(-2px);
+            background: var(--color-bg);
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+
+        .toolbar-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px var(--shadow-light);
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--color-white);
+            border-radius: 20px;
+            padding: 5px 15px;
+            margin-left: auto;
+            width: 250px;
+            transition: all var(--animation-speed);
+            box-shadow: 0 2px 4px var(--shadow-light);
+        }
+
+        .search-bar:focus-within {
+            width: 300px;
+            box-shadow: 0 4px 8px var(--shadow-light);
+        }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            background: none;
+            font-size: 14px;
+            width: 100%;
+            color: var(--color-dark);
+        }
+
+        .search-bar input::placeholder {
+            color: var(--color-secondary);
+        }
+    </style>
+</head>
+<style>
+    /* Zone principale et sidebar */
+    .main-container {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .sidebar {
+        width: var(--sidebar-width);
+        background: var(--color-secondary);
+        padding: 15px;
+        overflow-y: auto;
+        transition: all var(--animation-speed);
+        box-shadow: 2px 0 5px var(--shadow-light);
+    }
+
+    .sidebar-item {
+        padding: 10px;
+        margin-bottom: 5px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all var(--animation-speed);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--color-dark);
+        background: transparent;
+    }
+
+    .sidebar-item:hover {
+        background: var(--color-bg);
+        transform: translateX(5px);
+        box-shadow: 0 2px 4px var(--shadow-light);
+    }
+
+    /* Zone de contenu et grille */
+    .content-area {
+        flex: 1;
+        position: relative;
+        overflow: auto;
+        background: var(--color-bg);
+        transition: background-color var(--animation-speed);
+    }
+
+    .grid-snap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            linear-gradient(to right, var(--shadow-light) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--shadow-light) 1px, transparent 1px);
+        background-size: var(--grid-size) var(--grid-size);
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity var(--animation-speed);
+        min-height: 100%;
+        min-width: 100%;
+    }
+
+    .grid-hidden .grid-snap {
+        opacity: 0;
+    }
+
+    /* Style des icônes optimisé */
+    .draggable-icon {
+        position: absolute;
+        width: var(--grid-size);
+        height: calc(var(--grid-size) * 1.2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: move;
+        z-index: 1;
+        transition: transform var(--animation-speed),
+                  left var(--animation-speed),
+                  top var(--animation-speed),
+                  opacity var(--animation-speed);
+        will-change: transform, left, top;
+        padding: 5px;
+    }
+
+    .draggable-icon.dragging {
+        z-index: 1000;
+        opacity: 0.9;
+        transform: scale(1.05);
+        transition: none;
+    }
+
+    .draggable-icon.selected {
+        outline: 2px solid var(--color-accent);
+        border-radius: 8px;
+        background: rgba(74, 144, 226, 0.1);
+    }
+
+    .icon-3d {
+        width: 80px;
+        height: 60px;
+        background: var(--color-secondary);
+        border-radius: 10px;
+        position: relative;
+        box-shadow: 
+            0 4px 8px var(--shadow-color),
+            inset 0 -4px 4px var(--shadow-light),
+            inset 0 4px 4px rgba(255, 255, 255, 0.2);
+        transform-style: preserve-3d;
+        transform: perspective(500px) rotateX(10deg);
+        margin-bottom: 10px;
+        transition: all var(--animation-speed);
+    }
+
+    .dark-mode .icon-3d {
+        box-shadow: 
+            0 4px 8px var(--shadow-color),
+            inset 0 -4px 4px var(--shadow-light),
+            inset 0 4px 4px rgba(255, 255, 255, 0.1);
+    }
+
+    .icon-3d::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 0;
+        width: 40%;
+        height: 10px;
+        background: inherit;
+        border-radius: 5px 5px 0 0;
+        transform: translateZ(5px);
+    }
+
+    .icon-3d::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: inherit;
+        border-radius: inherit;
+        transform: translateZ(-5px) translateY(5px);
+        filter: brightness(0.8);
+    }
+
+    .draggable-icon:hover .icon-3d {
+        transform: perspective(500px) rotateX(15deg) scale(1.05);
+    }
+
+    .icon-label {
+        font-size: 12px;
+        color: var(--color-dark);
+        text-align: center;
+        max-width: 90px;
+        background: var(--color-white);
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-top: 5px;
+        cursor: text;
+        transition: all var(--animation-speed);
+        box-shadow: 0 1px 3px var(--shadow-light);
+    }
+
+    .edit-input {
+        position: absolute;
+        bottom: 5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90px;
+        padding: 2px 6px;
+        border: 1px solid var(--color-primary);
+        border-radius: 4px;
+        font-size: 12px;
+        text-align: center;
+        background: var(--color-white);
+        color: var(--color-dark);
+        display: none;
+        z-index: 1001;
+        box-shadow: 0 2px 5px var(--shadow-light);
+    }
+
+    .draggable-icon.editing .icon-label {
+        visibility: hidden;
+    }
+
+    .draggable-icon.editing .edit-input {
+        display: block;
+    }
+
+    /* Menu contextuel amélioré */
+    .context-menu {
+        position: fixed;
+        background: var(--color-white);
+        border-radius: 8px;
+        padding: 5px 0;
+        min-width: 180px;
+        box-shadow: 0 4px 12px var(--shadow-color);
+        z-index: 1000;
+        opacity: 0;
+        transform: scale(0.8);
+        transform-origin: top left;
+        transition: all var(--animation-speed);
+        pointer-events: none;
+    }
+
+    .context-menu.active {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: all;
+    }
+
+    .context-menu-item {
+        padding: 8px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--color-dark);
+        transition: background var(--animation-speed);
+        font-size: 13px;
+    }
+
+    .context-menu-item:hover {
+        background: var(--color-bg);
+    }
+
+    .context-menu-item.delete {
+        color: var(--color-danger);
+    }
+
+    .context-menu-separator {
+        height: 1px;
+        background: var(--color-bg);
+        margin: 5px 0;
+    }
+
+    .dark-mode .context-menu {
+        background: var(--color-secondary);
+    }
+
+    .dark-mode .context-menu-item {
+        color: var(--color-white);
+    }
+
+    /* Animations */
+    @keyframes iconPop {
+        0% { transform: scale(0.8); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .icon-new {
+        animation: iconPop var(--animation-speed) ease-out;
+    }
+
+    /* Classes utilitaires */
+    .no-shadows * {
+        box-shadow: none !important;
+    }
+</style>
+<style>
+    /* Styles du panneau des paramètres */
+    .settings-panel {
+        position: fixed;
+        top: 0;
+        right: -300px;
+        width: 300px;
+        height: 100vh;
+        background: var(--color-bg);
+        box-shadow: -2px 0 10px var(--shadow-color);
+        transition: all var(--animation-speed);
+        z-index: 1000;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .settings-panel.active {
+        right: 0;
+    }
+
+    .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--color-secondary);
+    }
+
+    .settings-header h2 {
+        color: var(--color-dark);
+        font-size: 18px;
+    }
+
+    .settings-close {
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--animation-speed);
+        background: var(--color-secondary);
+        color: var(--color-dark);
+    }
+
+    .settings-close:hover {
+        background: var(--color-primary);
+        color: var(--color-white);
+        transform: rotate(90deg);
+    }
+
+    .settings-section {
+        margin-bottom: 25px;
+        background: var(--color-white);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px var(--shadow-light);
+        transition: all var(--animation-speed);
+    }
+
+    .dark-mode .settings-section {
+        background: var(--color-secondary);
+    }
+
+    .settings-section h3 {
+        margin-bottom: 15px;
+        color: var(--color-dark);
+        font-size: 14px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .settings-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all var(--animation-speed);
+        background: var(--color-bg);
+    }
+
+    .settings-option:hover {
+        transform: translateX(5px);
+    }
+
+    .settings-option:last-child {
+        margin-bottom: 0;
+    }
+
+    .settings-option input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--color-primary);
+        cursor: pointer;
+    }
+
+    .settings-option label {
+        font-size: 13px;
+        color: var(--color-dark);
+        cursor: pointer;
+        flex: 1;
+    }
+
+    .dark-mode .settings-option label,
+    .dark-mode .settings-section h3,
+    .dark-mode .settings-header h2 {
+        color: var(--color-white);
+    }
+</style>
+
+<body>
+    <div class="window">
+        <div class="window-header">
+            <div class="window-controls">
+                <button class="control-button control-close" title="Fermer"></button>
+                <button class="control-button control-minimize" title="Réduire"></button>
+                <button class="control-button control-maximize" title="Agrandir"></button>
+            </div>
+            <div class="window-title">Miraubolant Explorer</div>
+        </div>
+
+        <div class="toolbar">
+            <button class="toolbar-button" id="newFileBtn" onclick="createNewIcon()">
+                <span>📄 Nouveau</span>
+            </button>
+            <button class="toolbar-button" onclick="sortIcons()">
+                <span>🔄 Trier</span>
+            </button>
+            <button class="toolbar-button" onclick="toggleSettings()">
+                <span>⚙️ Paramètres</span>
+            </button>
+            <div class="search-bar">
+                <input type="text" placeholder="Rechercher..." id="searchInput">
+            </div>
+        </div>
+
+        <div class="main-container">
+            <div class="sidebar">
+                <div class="sidebar-item">📁 Documents</div>
+                <div class="sidebar-item">🖼️ Images</div>
+                <div class="sidebar-item">🎵 Musique</div>
+                <div class="sidebar-item">🎬 Vidéos</div>
+                <div class="sidebar-item">⬇️ Téléchargements</div>
+                <div class="sidebar-item">💾 Système</div>
+                <div class="sidebar-item">🔒 Sécurisé</div>
+                <div class="sidebar-item">📱 Applications</div>
+                <div class="sidebar-item">☁️ Cloud</div>
+            </div>
+
+            <div class="content-area">
+                <div class="grid-snap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu contextuel -->
+    <div class="context-menu">
+        <div class="context-menu-item" onclick="renameIcon()">
+            <span>✏️ Renommer</span>
+        </div>
+        <div class="context-menu-item" onclick="duplicateIcon()">
+            <span>📋 Dupliquer</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" onclick="moveToFront()">
+            <span>📋 Premier plan</span>
+        </div>
+        <div class="context-menu-item" onclick="moveToBack()">
+            <span>📋 Arrière plan</span>
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item delete" onclick="deleteIcon()">
+            <span>🗑️ Supprimer</span>
+        </div>
+    </div>
+
+    <!-- Panneau des paramètres -->
+    <div class="settings-panel">
+        <div class="settings-header">
+            <h2>Paramètres</h2>
+            <span class="settings-close" onclick="toggleSettings()">✖</span>
+        </div>
+        
+        <div class="settings-section">
+            <h3>🎨 Apparence</h3>
+            <div class="settings-option">
+                <input type="checkbox" id="showGrid" onchange="toggleGrid()" checked>
+                <label for="showGrid">Afficher la grille</label>
+            </div>
+            <div class="settings-option">
+                <input type="checkbox" id="darkMode" onchange="toggleDarkMode()">
+                <label for="darkMode">Mode sombre</label>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>⚙️ Comportement</h3>
+            <div class="settings-option">
+                <input type="checkbox" id="snapToGrid" onchange="toggleSnapToGrid()" checked>
+                <label for="snapToGrid">Aligner sur la grille</label>
+            </div>
+            <div class="settings-option">
+                <input type="checkbox" id="autoSort" onchange="toggleAutoSort()">
+                <label for="autoSort">Tri automatique</label>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h3>🔧 Performance</h3>
+            <div class="settings-option">
+                <input type="checkbox" id="smoothAnimations" onchange="toggleSmoothAnimations()" checked>
+                <label for="smoothAnimations">Animations fluides</label>
+            </div>
+            <div class="settings-option">
+                <input type="checkbox" id="showShadows" onchange="toggleShadows()" checked>
+                <label for="showShadows">Afficher les ombres</label>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    // État global optimisé avec cache des éléments DOM
+    const state = {
+        isDragging: false,
+        currentIcon: null,
+        targetIcon: null,
+        offset: { x: 0, y: 0 },
+        iconCount: 0,
+        snapToGrid: true,
+        showGrid: true,
+        darkMode: false,
+        autoSort: false,
+        smoothAnimations: true,
+        showShadows: true,
+        selectedIcons: new Set()
+    };
+
+    // Cache des éléments DOM fréquemment utilisés
+    const dom = {
+        contentArea: document.querySelector('.content-area'),
+        contextMenu: document.querySelector('.context-menu'),
+        settingsPanel: document.querySelector('.settings-panel'),
+        searchInput: document.getElementById('searchInput'),
+        gridElement: document.querySelector('.grid-snap'),
+        newFileBtn: document.getElementById('newFileBtn')
+    };
+
+    // Constantes pour la performance
+    const GRID_SIZE = 100;
+    const THROTTLE_MS = 16;
+    let dragThrottle;
+
+    // Fonction utilitaire pour mettre à jour le z-index
+    function updateIconZIndex(icon, zIndex = 1000) {
+        const icons = document.querySelectorAll('.draggable-icon');
+        icons.forEach(i => i.style.zIndex = '1');
+        icon.style.zIndex = zIndex;
+        return icon;
+    }
+
+    // Création d'icône améliorée
+    function createNewIcon(x = 100, y = 100) {
+        const icon = document.createElement('div');
+        state.iconCount++;
+
+        icon.className = 'draggable-icon icon-new';
+        
+        // Position initiale ajustée à la grille
+        const position = calculateGridPosition(x, y);
+        icon.style.left = `${position.x}px`;
+        icon.style.top = `${position.y}px`;
+
+        icon.innerHTML = `
+            <div class="icon-3d"></div>
+            <div class="icon-label">Fichier ${state.iconCount}</div>
+            <input type="text" class="edit-input" value="Fichier ${state.iconCount}">
+        `;
+
+        setupIconEvents(icon);
+        dom.contentArea.appendChild(icon);
+
+        // Animation d'apparition
+        setTimeout(() => icon.classList.remove('icon-new'), 300);
+
+        if (state.autoSort) {
+            sortIcons();
+        }
+
+        return icon;
+    }
+
+    // Configuration des événements de l'icône
+    function setupIconEvents(icon) {
+        icon.addEventListener('mousedown', startDragging);
+        icon.addEventListener('contextmenu', showContextMenu);
+        
+        const label = icon.querySelector('.icon-label');
+        const input = icon.querySelector('.edit-input');
+
+        label.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            startEditing(icon);
+        });
+
+        input.addEventListener('blur', () => stopEditing(icon));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                stopEditing(icon);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                input.value = label.textContent;
+                stopEditing(icon);
+            }
+        });
+    }
+
+    // Fonctions d'édition
+    function startEditing(icon) {
+        icon.classList.add('editing');
+        const input = icon.querySelector('.edit-input');
+        input.focus();
+        input.select();
+    }
+
+    function stopEditing(icon) {
+        const input = icon.querySelector('.edit-input');
+        const label = icon.querySelector('.icon-label');
+        
+        if (input.value.trim() !== '') {
+            label.textContent = input.value;
+        }
+        
+        icon.classList.remove('editing');
+
+        if (state.autoSort) {
+            sortIcons();
+        }
+    }
+
+    // Gestion du drag & drop
+    function startDragging(e) {
+        if (e.button !== 0 || e.target.classList.contains('edit-input')) return;
+
+        state.currentIcon = e.currentTarget;
+        state.isDragging = true;
+        
+        const rect = state.currentIcon.getBoundingClientRect();
+        state.offset = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+
+        state.currentIcon.classList.add('dragging');
+        updateIconZIndex(state.currentIcon);
+
+        if (state.smoothAnimations) {
+            state.currentIcon.style.transition = 'none';
+        }
+    }
+
+    function handleDrag(e) {
+        if (!state.isDragging || !state.currentIcon) return;
+
+        if (!dragThrottle) {
+            dragThrottle = setTimeout(() => {
+                dragThrottle = null;
+                const position = calculateDragPosition(e);
+                updateIconPosition(state.currentIcon, position);
+            }, THROTTLE_MS);
+        }
+    }
+
+    function stopDragging() {
+        if (!state.isDragging) return;
+
+        state.isDragging = false;
+        if (state.currentIcon) {
+            state.currentIcon.classList.remove('dragging');
+            
+            if (state.smoothAnimations) {
+                state.currentIcon.style.transition = '';
+            }
+
+            snapToGrid(state.currentIcon);
+            state.currentIcon = null;
+        }
+    }
+
+    // Fonctions utilitaires pour la position
+    function calculateGridPosition(x, y) {
+        if (state.snapToGrid) {
+            return {
+                x: Math.round(x / GRID_SIZE) * GRID_SIZE,
+                y: Math.round(y / GRID_SIZE) * GRID_SIZE
+            };
+        }
+        return { x, y };
+    }
+
+    function calculateDragPosition(e) {
+        const rect = dom.contentArea.getBoundingClientRect();
+        let x = e.clientX - rect.left - state.offset.x;
+        let y = e.clientY - rect.top - state.offset.y;
+
+        const maxX = Math.max(0, rect.width - GRID_SIZE);
+        const maxY = Math.max(0, rect.height - GRID_SIZE * 1.2);
+
+        x = Math.max(0, Math.min(x, maxX));
+        y = Math.max(0, Math.min(y, maxY));
+
+        return { x, y };
+    }
+
+    function snapToGrid(icon) {
+        if (!state.snapToGrid) return;
+
+        const left = parseInt(icon.style.left);
+        const top = parseInt(icon.style.top);
+        
+        const snappedPosition = calculateGridPosition(left, top);
+        updateIconPosition(icon, snappedPosition);
+    }
+
+    function updateIconPosition(icon, position) {
+        icon.style.left = `${position.x}px`;
+        icon.style.top = `${position.y}px`;
+    }
+
+    // Fonctions du menu contextuel
+    function showContextMenu(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        state.targetIcon = e.currentTarget;
+        
+        const menuX = Math.min(e.clientX, window.innerWidth - 200);
+        const menuY = Math.min(e.clientY, window.innerHeight - dom.contextMenu.offsetHeight);
+        
+        dom.contextMenu.style.left = `${menuX}px`;
+        dom.contextMenu.style.top = `${menuY}px`;
+        dom.contextMenu.classList.add('active');
+        
+        updateSelection();
+    }
+
+    function hideContextMenu() {
+        dom.contextMenu.classList.remove('active');
+        state.targetIcon = null;
+    }
+
+    function updateSelection() {
+        document.querySelectorAll('.draggable-icon').forEach(icon => {
+            icon.classList.remove('selected');
+        });
+        if (state.targetIcon) {
+            state.targetIcon.classList.add('selected');
+        }
+    }
+
+    // Actions du menu contextuel
+    function deleteIcon() {
+        if (state.targetIcon) {
+            state.targetIcon.remove();
+            hideContextMenu();
+        }
+    }
+
+    function renameIcon() {
+        if (state.targetIcon) {
+            startEditing(state.targetIcon);
+            hideContextMenu();
+        }
+    }
+
+    function duplicateIcon() {
+        if (state.targetIcon) {
+            const rect = state.targetIcon.getBoundingClientRect();
+            const newIcon = createNewIcon(
+                parseInt(state.targetIcon.style.left) + GRID_SIZE,
+                parseInt(state.targetIcon.style.top) + GRID_SIZE
+            );
+            const originalLabel = state.targetIcon.querySelector('.icon-label').textContent;
+            newIcon.querySelector('.icon-label').textContent = `${originalLabel} - Copie`;
+            newIcon.querySelector('.edit-input').value = `${originalLabel} - Copie`;
+            hideContextMenu();
+        }
+    }
+
+    function moveToFront() {
+        if (state.targetIcon) {
+            updateIconZIndex(state.targetIcon, 1000);
+            hideContextMenu();
+        }
+    }
+
+    function moveToBack() {
+        if (state.targetIcon) {
+            updateIconZIndex(state.targetIcon, 1);
+            hideContextMenu();
+        }
+    }
+
+    // Fonctions des paramètres
+    function toggleSettings() {
+        dom.settingsPanel.classList.toggle('active');
+    }
+
+    function toggleGrid() {
+        state.showGrid = document.getElementById('showGrid').checked;
+        document.body.classList.toggle('grid-hidden', !state.showGrid);
+        savePreferences();
+    }
+
+    function toggleDarkMode() {
+        state.darkMode = document.getElementById('darkMode').checked;
+        document.body.classList.toggle('dark-mode', state.darkMode);
+        savePreferences();
+    }
+
+    function toggleSnapToGrid() {
+        state.snapToGrid = document.getElementById('snapToGrid').checked;
+        savePreferences();
+    }
+
+    function toggleAutoSort() {
+        state.autoSort = document.getElementById('autoSort').checked;
+        if (state.autoSort) sortIcons();
+        savePreferences();
+    }
+
+    function toggleSmoothAnimations() {
+        state.smoothAnimations = document.getElementById('smoothAnimations').checked;
+        document.documentElement.style.setProperty('--animation-speed', 
+            state.smoothAnimations ? '0.15s' : '0s');
+        savePreferences();
+    }
+
+    function toggleShadows() {
+        state.showShadows = document.getElementById('showShadows').checked;
+        document.body.classList.toggle('no-shadows', !state.showShadows);
+        savePreferences();
+    }
+
+    // Tri des icônes
+    function sortIcons() {
+        const icons = Array.from(document.querySelectorAll('.draggable-icon'));
+        icons.sort((a, b) => {
+            const labelA = a.querySelector('.icon-label').textContent.toLowerCase();
+            const labelB = b.querySelector('.icon-label').textContent.toLowerCase();
+            return labelA.localeCompare(labelB);
+        });
+
+        const maxIconsPerRow = Math.floor(dom.contentArea.clientWidth / GRID_SIZE);
+        
+        icons.forEach((icon, index) => {
+            const row = Math.floor(index / maxIconsPerRow);
+            const col = index % maxIconsPerRow;
+            
+            updateIconPosition(icon, {
+                x: col * GRID_SIZE,
+                y: row * GRID_SIZE
+            });
+        });
+    }
+
+    // Gestion des préférences
+    function savePreferences() {
+        const preferences = {
+            snapToGrid: state.snapToGrid,
+            showGrid: state.showGrid,
+            darkMode: state.darkMode,
+            autoSort: state.autoSort,
+            smoothAnimations: state.smoothAnimations,
+            showShadows: state.showShadows
+        };
+        localStorage.setItem('explorerPreferences', JSON.stringify(preferences));
+    }
+
+    function loadPreferences() {
+        const preferences = JSON.parse(localStorage.getItem('explorerPreferences') || '{}');
+        Object.entries(preferences).forEach(([key, value]) => {
+            if (state.hasOwnProperty(key)) {
+                state[key] = value;
+                const checkbox = document.getElementById(key);
+                if (checkbox) {
+                    checkbox.checked = value;
+                    // Déclencher les changements initiaux
+                    checkbox.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    }
+
+    // Recherche optimisée
+    let searchTimeout;
+    dom.searchInput.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            const searchTerm = e.target.value.toLowerCase();
+            document.querySelectorAll('.draggable-icon').forEach(icon => {
+                const label = icon.querySelector('.icon-label').textContent.toLowerCase();
+                icon.style.display = label.includes(searchTerm) ? 'flex' : 'none';
+            });
+        }, 150);
+    });
+
+    // Événements globaux
+    document.addEventListener('mousemove', handleDrag, { passive: true });
+    document.addEventListener('mouseup', stopDragging);
+    document.addEventListener('click', hideContextMenu);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            hideContextMenu();
+            dom.settingsPanel.classList.remove('active');
+        }
+    });
+
+    // Initialisation
+    window.onload = () => {
+        loadPreferences();
+        createNewIcon(100, 100);
+        createNewIcon(250, 100);
+        createNewIcon(400, 100);
+    };
+</script>
